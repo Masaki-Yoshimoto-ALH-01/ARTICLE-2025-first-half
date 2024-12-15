@@ -1,0 +1,118 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: 
+  VPC and Subnet Create
+
+# ------------------------------------------------------------#
+# Input Parameters
+# ------------------------------------------------------------# 
+Parameters:
+  VPC:
+    Type: String
+
+  Subnet:
+    Type: String
+
+
+  EC2Image:
+    Description: AMI ID of an EC2 instance.
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64
+
+
+Resources: 
+# ------------------------------------------------------------#
+#  IAM Role
+# ------------------------------------------------------------#
+  EC2Role:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: /
+      RoleName: 'ssm-s3-ec2role'
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      MaxSessionDuration: 3600
+      ManagedPolicyArns: 
+        - arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforSSM
+
+# ------------------------------------------------------------#
+#  IAM Policy
+# ------------------------------------------------------------#
+  S3AccessPolicies:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: 's3access'
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action:
+            - "s3:PutObject"
+            - "s3:GetObject"
+            - "s3:ListBucket"
+          Resource: "arn:aws:s3:::*"
+      Roles:
+      - !Ref EC2Role
+
+
+# ------------------------------------------------------------#
+#  InstanceProfile
+# ------------------------------------------------------------#
+  InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: /
+      Roles:
+        - !Ref EC2Role
+
+
+# ------------------------------------------------------------#
+#  EC2SG
+# ------------------------------------------------------------#
+  EC2SG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: 'ec2-sg-no-ingress'
+      GroupDescription: no ingress sg
+      VpcId: !Ref VPC
+      # EPの許可ルールだけでいいのでNoingress
+
+# ------------------------------------------------------------#
+#  EC2
+# ------------------------------------------------------------#
+  EC2: 
+    Type: AWS::EC2::Instance
+    Properties: 
+      # AmazonLinux2023のAMIをダイレクト指定
+      ImageId: !Sub "${EC2Image}"
+      # 別件用にちょっとキーペア残したいから今回はコメントアウト
+      # KeyName: !Ref KeyName
+      InstanceType: t2.micro
+      IamInstanceProfile: !Ref InstanceProfile
+      NetworkInterfaces: 
+        - AssociatePublicIpAddress: "true"
+          DeviceIndex: "0"
+          SubnetId: !Ref Subnet
+          GroupSet:
+            - !Ref EC2SG
+      # 別件用にちょっとUserData残したいから今回はコメントアウト
+      # UserData: !Base64 |
+      #   #!/bin/bash
+      #   sudo yum install -y git
+      Tags:
+          - Key: Name
+            Value: demo-ec2
+
+Outputs:
+  EC2:
+    Value: !Ref EC2
+    Description: "Name of EC2"
+  EC2Role:
+    Value: !Ref EC2Role
+    Description: "Name of EC2Role"

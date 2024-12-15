@@ -1,0 +1,91 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Manage myself verification environment
+
+Parameters: 
+  # テンプレート格納先のURL
+  TemplateUrl:
+    Description: '例：https://{buketName}.s3.ap-northeast-1.amazonaws.com/[Prefix(ない場合は不要)]'
+    Type: String
+
+  PJPrefix:
+    Type: String
+    Default: "test"
+
+  S3Name:
+    Description: S3 Buket Name
+    Type: String
+    Default: test-log-buket
+
+  VPCCIDR: 
+    Description: VPC CIDR
+    Type: String
+    Default: '10.1.0.0/24'
+
+  PublicSubnetACIDR: 
+    Description: Public Subnet
+    Type: String
+    Default: '10.1.0.0/26'
+
+  PrivateSubnetACIDR: 
+    Description: Private Subnet
+    Type: String
+    Default: '10.1.0.64/26'
+
+Resources:
+  # VPCの作成
+  VPC:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Join 
+        - ''
+        - - !Ref TemplateUrl
+          - 'vpc-create.yaml'
+      Parameters:
+        PJPrefix: !Ref PJPrefix
+        VPCCIDR: !Ref VPCCIDR
+        PublicSubnetACIDR: !Ref PublicSubnetACIDR
+        PrivateSubnetACIDR: !Ref PrivateSubnetACIDR
+
+  # S3の作成
+  S3:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Join 
+        - ''
+        - - !Ref TemplateUrl
+          - 's3-create.yaml'
+      Parameters: 
+        s3Name: !Ref S3Name
+
+  # EC2の作成
+  EC2:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Join 
+        - ''
+        - - !Ref TemplateUrl
+          - 'ec2-create.yaml'
+      Parameters: 
+        VPC: !GetAtt VPC.Outputs.VPC
+        Subnet: !GetAtt VPC.Outputs.PublicSubnetA
+        EC2Image: '/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64'
+    DependsOn: VPC
+
+
+Outputs:
+  VPCId:
+    Value: !GetAtt VPC.Outputs.VPC
+    Description: VPC
+
+  S3:
+    Value: !GetAtt S3.Outputs.SampleBucket
+    Description: S3 Buket
+
+  EC2:
+    Value: !GetAtt EC2.Outputs.EC2
+    Description: EC2
+
+  EC2Role:
+    Value: !GetAtt EC2.Outputs.EC2Role
+    Description: EC2Role
+

@@ -1,0 +1,55 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: 
+  S3 Create
+
+Parameters:
+  s3Name:
+    Description: "Enter the name of your project"
+    Type: String
+    AllowedPattern: "^[a-z0-9][a-z0-9\\-]{0,51}$"
+    ConstraintDescription: "Must be a string of 1 to 51 characters containing only lowercase letters, numbers and hyphens (-)"
+    Default: "oya-s3-sample"
+
+Resources:
+  SampleBucket:
+    Type: "AWS::S3::Bucket"
+    DeletionPolicy: Delete
+    Properties:
+      BucketName: !Sub ${s3Name}-sample
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+  SampleBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref SampleBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: AllowSSLRequestsOnly
+            Action: "s3:*"
+            Effect: Deny
+            Resource:
+              - !Sub "arn:${AWS::Partition}:s3:::${SampleBucket}"
+              - !Sub "arn:${AWS::Partition}:s3:::${SampleBucket}/*"
+            Condition:
+              Bool:
+                "aws:SecureTransport": false
+            Principal: "*"
+
+Outputs:
+  SampleBucket:
+    Value: !Ref SampleBucket
+    Description: "Name of SampleBucket"
+    Export:
+      Name: !Sub ${AWS::StackName}-SampleBucket
