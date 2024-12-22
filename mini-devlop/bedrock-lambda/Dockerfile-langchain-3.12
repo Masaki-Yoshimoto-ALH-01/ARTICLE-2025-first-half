@@ -1,0 +1,23 @@
+FROM public.ecr.aws/lambda/python:3.12
+
+WORKDIR /work
+
+RUN dnf update && dnf install -y zip
+
+RUN pip install --upgrade pip && \
+    pip install langchain==0.2.11 -t /python/lib/python3.12/site-packages/ && \
+    pip install langchain-community==0.2.11 -t /python/lib/python3.12/site-packages/ && \
+    pip install langchain-core==0.2.11 -t /python/lib/python3.12/site-packages/ && \
+    pip install langchain-aws==0.1.15 -t /python/lib/python3.12/site-packages/
+
+RUN rm -rf /python/lib/python3.12/site-packages/boto3* \
+           /python/lib/python3.12/site-packages/botocore* \
+           /python/lib/python3.12/site-packages/s3transfer* \
+           /python/lib/python3.12/site-packages/docutils* \
+           /python/lib/python3.12/site-packages/jmespath* \
+           /python/lib/python3.12/site-packages/chardet* \
+           /python/lib/python3.12/site-packages/six* \
+           /python/lib/python3.12/site-packages/python_dateutil*
+
+ENTRYPOINT [""]
+CMD zip -r langchain-0.2.11.zip /python/lib/python3.12/site-packages/

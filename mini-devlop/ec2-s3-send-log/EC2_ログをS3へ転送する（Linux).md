@@ -17,7 +17,8 @@ Linux/AmazonLinux2023
 VPC、サブネットなど必要ですが、NW周りは今回解説しません。
 
 ## 構成図
-![構成図](mini-devlop/img/ec2-s3-sendlog.drawio.png)
+![構成図](article/ARTICLE-2025-first-half/mini-devlop/ec2-s3-send-log/img/ec2-s3-sendlog.drawio.png)
+
 
 - VPCとその外にあるS3へのアクセスはゲートウェイ型のVPCエンドポイントを使って行う。
 - EC2にはS3の操作できるIAMロールをインスタンスプロファイルとして設定する。
